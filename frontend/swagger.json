@@ -1,0 +1,1898 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/": {
+      "get": {
+        "operationId": "AppController_getHello",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "App"
+        ]
+      }
+    },
+    "/clmm-pools": {
+      "get": {
+        "operationId": "AppController_getClmmPools",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "App"
+        ]
+      }
+    },
+    "/user/me": {
+      "get": {
+        "operationId": "UserController_getMe",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Получить информацию о текущем пользователе",
+        "tags": [
+          "user"
+        ]
+      }
+    },
+    "/user/{id}": {
+      "get": {
+        "operationId": "UserController_getById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Получить пользователя по ID (только admin)",
+        "tags": [
+          "user"
+        ]
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "description": "Выполняет вход в систему и возвращает access + refresh токены",
+        "operationId": "AuthController_login",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Авторизация успешна",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Неверные учетные данные"
+          }
+        },
+        "summary": "Авторизация пользователя",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/auth/register": {
+      "post": {
+        "description": "Создаёт новый аккаунт с ролью vault или pro",
+        "operationId": "AuthController_register",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenResponseDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Username уже занят"
+          }
+        },
+        "summary": "Регистрация пользователя",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/auth/refresh": {
+      "post": {
+        "description": "Обновляет access и refresh токены по refresh токену",
+        "operationId": "AuthController_refresh",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshTokenDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Недействительный refresh токен"
+          }
+        },
+        "summary": "Обновление токенов",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/liquidity/setup-position": {
+      "post": {
+        "description": "Создает новую позицию в пуле Raydium CLMM с указанным диапазоном цен",
+        "operationId": "LiquidityBotController_setupLiquidityPosition",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetupPositionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Позиция успешно создана",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "mint": "5HauEoJa6tcKBy1vofNAxnEDiMpC7H6V9L5TgLwFYNfd",
+                    "txId": "https://explorer.solana.com/tx/...",
+                    "poolId": "2QdhepnKRTLjjSqPL1PtKNwqrUkoLee5Gqs8bvZhRdMv"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Неверные параметры"
+          },
+          "401": {
+            "description": "Не авторизован"
+          },
+          "500": {
+            "description": "Ошибка сервера"
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Открыть позицию ликвидности",
+        "tags": [
+          "liquidity"
+        ]
+      }
+    },
+    "/liquidity/close-position": {
+      "post": {
+        "description": "Закрывает существующую позицию и выводит все токены",
+        "operationId": "LiquidityBotController_closeLiquidityPosition",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClosePositionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Позиция успешно закрыта",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "txId": "https://explorer.solana.com/tx/...",
+                    "success": true,
+                    "baseAmount": 21.57462,
+                    "quoteAmount": 8.705166,
+                    "feesCollected": 17.65
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Позиция не найдена"
+          },
+          "500": {
+            "description": "Ошибка сервера"
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Закрыть позицию ликвидности",
+        "tags": [
+          "liquidity"
+        ]
+      }
+    },
+    "/liquidity/position/{nftMint}": {
+      "get": {
+        "description": "Возвращает детальную информацию о конкретной позиции",
+        "operationId": "LiquidityBotController_getPositionInfo",
+        "parameters": [
+          {
+            "name": "nftMint",
+            "required": true,
+            "in": "path",
+            "description": "NFT Mint адрес позиции",
+            "schema": {
+              "example": "5HauEoJa6tcKBy1vofNAxnEDiMpC7H6V9L5TgLwFYNfd",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Информация о позиции",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "position": {
+                      "positionId": "5HauEoJa...",
+                      "baseAmount": "21.526289",
+                      "quoteAmount": "0.000000",
+                      "priceRange": {
+                        "lower": 154.63,
+                        "upper": 161.81
+                      },
+                      "currentPrice": 162.27,
+                      "profitability": 5.23
+                    },
+                    "pool": {
+                      "poolId": "2Qdhep...",
+                      "baseMint": "SOL",
+                      "quoteMint": "USDC",
+                      "currentPrice": 162.27
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Позиция не найдена"
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Получить информацию о позиции",
+        "tags": [
+          "liquidity"
+        ]
+      }
+    },
+    "/liquidity/positions": {
+      "get": {
+        "description": "Возвращает список всех активных позиций пользователя",
+        "operationId": "LiquidityBotController_getAllPositionInfo",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Список позиций",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": [
+                    {
+                      "position": {
+                        "positionId": "5HauEoJa...",
+                        "baseAmount": "21.526289",
+                        "quoteAmount": "0.000000"
+                      },
+                      "pool": {
+                        "poolId": "2Qdhep...",
+                        "baseMint": "SOL",
+                        "quoteMint": "USDC"
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Получить все позиции",
+        "tags": [
+          "liquidity"
+        ]
+      }
+    },
+    "/liquidity/positions/wallet": {
+      "get": {
+        "description": "Возвращает все позиции из подключенного кошелька",
+        "operationId": "LiquidityBotController_getAllPositionsFromWallet",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Список позиций"
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Получить все позиции кошелька",
+        "tags": [
+          "liquidity"
+        ]
+      }
+    },
+    "/liquidity/pool/{poolId}": {
+      "get": {
+        "description": "Возвращает детали пула ликвидности",
+        "operationId": "LiquidityBotController_getPoolInfo",
+        "parameters": [
+          {
+            "name": "poolId",
+            "required": true,
+            "in": "path",
+            "description": "ID пула",
+            "schema": {
+              "example": "2QdhepnKRTLjjSqPL1PtKNwqrUkoLee5Gqs8bvZhRdMv",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Информация о пуле",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "id": "2Qdhep...",
+                    "mintA": {
+                      "symbol": "SOL",
+                      "decimals": 9
+                    },
+                    "mintB": {
+                      "symbol": "USDC",
+                      "decimals": 6
+                    },
+                    "price": 162.27,
+                    "tvl": 5234567.89
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Получить информацию о пуле",
+        "tags": [
+          "liquidity"
+        ]
+      }
+    },
+    "/liquidity/token/price": {
+      "get": {
+        "description": "Возвращает текущие цены указанных токенов в USD",
+        "operationId": "LiquidityBotController_getTokenPrice",
+        "parameters": [
+          {
+            "name": "symbols",
+            "required": true,
+            "in": "query",
+            "description": "Символы токенов через запятую",
+            "schema": {
+              "example": "SOL,USDC,USDT",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Цены токенов",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "SOL": 162.27,
+                    "USDC": 1,
+                    "USDT": 1
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Получить цены токенов",
+        "tags": [
+          "liquidity"
+        ]
+      }
+    },
+    "/liquidity/pool/balance/{poolId}": {
+      "get": {
+        "description": "Возвращает текущие балансы токенов в указанном пуле",
+        "operationId": "LiquidityBotController_getPoolBalance",
+        "parameters": [
+          {
+            "name": "poolId",
+            "required": true,
+            "in": "path",
+            "description": "ID пула",
+            "schema": {
+              "example": "2QdhepnKRTLjjSqPL1PtKNwqrUkoLee5Gqs8bvZhRdMv",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Балансы токенов",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "SOL": {
+                      "amount": 21.526289,
+                      "symbol": "SOL"
+                    },
+                    "USDC": {
+                      "amount": 3842.701244,
+                      "symbol": "USDC"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Получить балансы токенов пула",
+        "tags": [
+          "liquidity"
+        ]
+      }
+    },
+    "/liquidity/increase": {
+      "post": {
+        "operationId": "LiquidityBotController_increaseLiquidity",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IncreasePositionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "tags": [
+          "liquidity"
+        ]
+      }
+    },
+    "/liquidity/density": {
+      "get": {
+        "operationId": "LiquidityBotController_getDensityForPosition",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "tags": [
+          "liquidity"
+        ]
+      }
+    },
+    "/transaction": {
+      "get": {
+        "description": "Возвращает список всех транзакций с пагинацией",
+        "operationId": "TransactionController_getAllTransactions",
+        "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Максимальное количество записей",
+            "schema": {
+              "example": 100,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Список транзакций",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "total": 50,
+                    "transactions": [
+                      {
+                        "id": 1,
+                        "positionId": "5HauEoJa...",
+                        "type": "OPEN_POSITION",
+                        "date": "2025-01-15T10:30:00Z",
+                        "txHash": "abc123...",
+                        "baseToken": {
+                          "symbol": "SOL",
+                          "amount": 21.526289,
+                          "valueUSD": 3996.54
+                        },
+                        "quoteToken": {
+                          "symbol": "USDC",
+                          "amount": 3842.7,
+                          "valueUSD": 3842.7
+                        },
+                        "solPrice": 185.79,
+                        "positionBalanceUSD": 7839.24,
+                        "walletBalanceUSD": 248.88,
+                        "profit": {
+                          "usd": 125.5
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Не авторизован"
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Получить историю транзакций",
+        "tags": [
+          "transaction"
+        ]
+      }
+    },
+    "/transaction/statistics": {
+      "get": {
+        "description": "Возвращает общую статистику по всем транзакциям",
+        "operationId": "TransactionController_getStatistics",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Статистика",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "totalTransactions": 150,
+                    "openPositions": 75,
+                    "closePositions": 75,
+                    "totalProfit": "1250.50",
+                    "totalVolume": "125000.00"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Получить статистику транзакций",
+        "tags": [
+          "transaction"
+        ]
+      }
+    },
+    "/transaction/position/{positionId}": {
+      "get": {
+        "description": "Возвращает все транзакции для конкретной позиции",
+        "operationId": "TransactionController_getPositionHistory",
+        "parameters": [
+          {
+            "name": "positionId",
+            "required": true,
+            "in": "path",
+            "description": "ID позиции",
+            "schema": {
+              "example": "5HauEoJa6tcKBy1vofNAxnEDiMpC7H6V9L5TgLwFYNfd",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "История позиции",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "positionId": "5HauEoJa...",
+                    "total": 2,
+                    "transactions": [
+                      {
+                        "id": 1,
+                        "type": "OPEN_POSITION",
+                        "date": "2025-01-15T10:30:00Z"
+                      },
+                      {
+                        "id": 2,
+                        "type": "CLOSE_POSITION",
+                        "date": "2025-01-16T14:20:00Z"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Позиция не найдена"
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Получить историю позиции",
+        "tags": [
+          "transaction"
+        ]
+      }
+    },
+    "/transaction/grouped": {
+      "get": {
+        "description": "Возвращает список транзакций, где свапы сгруппированы по позициям. Свапы между Remove и Add Liquidity объединяются в SWAP_GROUP.",
+        "operationId": "TransactionController_getGroupedTransactions",
+        "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Максимальное количество записей",
+            "schema": {
+              "example": 50,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Список транзакций с группировкой свапов",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "total": 25,
+                    "transactions": [
+                      {
+                        "id": "swap-group-GFmD4Uc...",
+                        "type": "SWAP_GROUP",
+                        "positionId": "GFmD4UcWUTmnq...",
+                        "swapCount": 3,
+                        "date": "2025-12-12T19:51:25.351Z",
+                        "swaps": [
+                          {
+                            "id": "0bce3b0d-18e0...",
+                            "index": 1,
+                            "txHash": "rPHW4i73aio9...",
+                            "date": "2025-12-12T19:47:24.156Z",
+                            "inputToken": "SOL",
+                            "inputAmount": 12.903954322,
+                            "inputValueUSD": 1705.27,
+                            "outputToken": "USDC",
+                            "outputAmount": 1684.196605,
+                            "outputValueUSD": 1684.2,
+                            "profitUSD": -21.08
+                          }
+                        ],
+                        "totalProfitUSD": -23.92,
+                        "solPrice": 131.3,
+                        "walletBalanceUSD": 143.18
+                      },
+                      {
+                        "id": "b6f730af-1c1d...",
+                        "positionId": "GFmD4UcWUTmnq...",
+                        "type": "OPEN_POSITION",
+                        "date": "2025-12-12T19:47:40.468Z",
+                        "txHash": "66APpa6qFfkf...",
+                        "baseToken": {
+                          "symbol": "SOL",
+                          "amount": 13.715802339,
+                          "valueUSD": 1792.06
+                        },
+                        "quoteToken": {
+                          "symbol": "USDC",
+                          "amount": 1955.810927,
+                          "valueUSD": 1955.81
+                        },
+                        "solPrice": 131.16,
+                        "positionBalanceUSD": 3747.87,
+                        "walletBalanceUSD": 3797.57,
+                        "profit": null
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Не авторизован"
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Получить историю транзакций с группировкой свапов",
+        "tags": [
+          "transaction"
+        ]
+      }
+    },
+    "/transaction/monthly/{year}/{month}": {
+      "get": {
+        "description": "Возвращает чистую и среднюю прибыль за указанный месяц",
+        "operationId": "TransactionController_getMonthlyProfit",
+        "parameters": [
+          {
+            "name": "year",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "example": 2025,
+              "type": "number"
+            }
+          },
+          {
+            "name": "month",
+            "required": true,
+            "in": "path",
+            "description": "1-12",
+            "schema": {
+              "example": 1,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Статистика прибыли за месяц",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "success": true,
+                    "stats": {
+                      "year": 2025,
+                      "month": 1,
+                      "totalNetProfit": "$100.00",
+                      "avgProfit": "$20.00",
+                      "operations": 5,
+                      "profitableOps": 4,
+                      "lossOps": 1,
+                      "successRate": "80.0%"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Получить прибыль за месяц",
+        "tags": [
+          "transaction"
+        ]
+      }
+    },
+    "/transaction/all-time": {
+      "get": {
+        "description": "Возвращает общую статистику прибыли и разбивку по месяцам",
+        "operationId": "TransactionController_getAllTimeProfit",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Статистика прибыли за все время",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "success": true,
+                    "stats": {
+                      "totalNetProfit": "$450.00",
+                      "avgProfit": "$22.50",
+                      "operations": 20,
+                      "profitableOps": 17,
+                      "lossOps": 3,
+                      "successRate": "85.0%",
+                      "monthlyBreakdown": [
+                        {
+                          "year": 2025,
+                          "month": 3,
+                          "profit": 150,
+                          "operations": 8,
+                          "avgProfit": 18.75
+                        },
+                        {
+                          "year": 2025,
+                          "month": 2,
+                          "profit": 200,
+                          "operations": 7,
+                          "avgProfit": 28.57
+                        },
+                        {
+                          "year": 2025,
+                          "month": 1,
+                          "profit": 100,
+                          "operations": 5,
+                          "avgProfit": 20
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Получить прибыль за все время",
+        "tags": [
+          "transaction"
+        ]
+      }
+    },
+    "/swap": {
+      "post": {
+        "operationId": "SwapController_swap",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Swap"
+        ]
+      }
+    },
+    "/swap/swap/quote": {
+      "post": {
+        "operationId": "SwapController_getSwapQuote",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Swap"
+        ]
+      }
+    },
+    "/monitoring/start": {
+      "post": {
+        "operationId": "MonitorController_startMonitoring",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Monitor"
+        ]
+      }
+    },
+    "/monitoring/stop": {
+      "post": {
+        "operationId": "MonitorController_stopMonitoring",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Monitor"
+        ]
+      }
+    },
+    "/monitoring/status": {
+      "get": {
+        "operationId": "MonitorController_getMonitoringStatus",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Monitor"
+        ]
+      }
+    },
+    "/monitoring/check-now": {
+      "post": {
+        "operationId": "MonitorController_checkNow",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Monitor"
+        ]
+      }
+    },
+    "/monitoring/stats": {
+      "get": {
+        "operationId": "MonitorController_getStats",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Monitor"
+        ]
+      }
+    },
+    "/analytics/position/{positionId}": {
+      "get": {
+        "operationId": "PositionAnalyticsController_getPositionAnalytics",
+        "parameters": [
+          {
+            "name": "positionId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "PositionAnalytics"
+        ]
+      }
+    },
+    "/analytics/positions": {
+      "get": {
+        "operationId": "PositionAnalyticsController_getAllPositions",
+        "parameters": [
+          {
+            "name": "status",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sort",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "PositionAnalytics"
+        ]
+      }
+    },
+    "/analytics/comparison/{positionId}": {
+      "get": {
+        "operationId": "PositionAnalyticsController_getStrategyComparison",
+        "parameters": [
+          {
+            "name": "positionId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "PositionAnalytics"
+        ]
+      }
+    },
+    "/position-config": {
+      "post": {
+        "operationId": "PositionConfigController_upsertConfig",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateConfigDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create or update position config",
+        "tags": [
+          "Position Config"
+        ]
+      },
+      "get": {
+        "operationId": "PositionConfigController_getAllConfigs",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get all configs",
+        "tags": [
+          "Position Config"
+        ]
+      }
+    },
+    "/position-config/{poolId}": {
+      "get": {
+        "operationId": "PositionConfigController_getConfig",
+        "parameters": [
+          {
+            "name": "poolId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get config for pool",
+        "tags": [
+          "Position Config"
+        ]
+      },
+      "delete": {
+        "operationId": "PositionConfigController_deleteConfig",
+        "parameters": [
+          {
+            "name": "poolId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete config for pool",
+        "tags": [
+          "Position Config"
+        ]
+      }
+    },
+    "/position-config/{poolId}/deactivate": {
+      "post": {
+        "operationId": "PositionConfigController_deactivateConfig",
+        "parameters": [
+          {
+            "name": "poolId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Deactivate config for pool",
+        "tags": [
+          "Position Config"
+        ]
+      }
+    },
+    "/snapshots/position/{positionId}": {
+      "get": {
+        "operationId": "PositionSnapshotController_getPositionSnapshots",
+        "parameters": [
+          {
+            "name": "positionId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "example": "5ngdutp5g8cTbGFD4dV2hgGQPkPonp4gp32ZxPaMuiP",
+              "type": "string"
+            }
+          },
+          {
+            "name": "startDate",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "2025-01-01",
+              "type": "string"
+            }
+          },
+          {
+            "name": "endDate",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "2025-01-31",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Get snapshots for position",
+        "tags": [
+          "Position Snapshots"
+        ]
+      }
+    },
+    "/snapshots/recent": {
+      "get": {
+        "operationId": "PositionSnapshotController_getRecentSnapshots",
+        "parameters": [
+          {
+            "name": "days",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 7,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Get recent snapshots for all positions",
+        "tags": [
+          "Position Snapshots"
+        ]
+      }
+    },
+    "/snapshots/statistics": {
+      "get": {
+        "operationId": "PositionSnapshotController_getPeriodStatistics",
+        "parameters": [
+          {
+            "name": "startDate",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "2025-01-01",
+              "type": "string"
+            }
+          },
+          {
+            "name": "endDate",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "2025-01-31",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Get statistics for period",
+        "tags": [
+          "Position Snapshots"
+        ]
+      }
+    },
+    "/snapshots/trigger": {
+      "post": {
+        "operationId": "PositionSnapshotController_triggerSnapshot",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Manually trigger snapshot creation",
+        "tags": [
+          "Position Snapshots"
+        ]
+      }
+    },
+    "/volatility/suggest/{poolId}": {
+      "get": {
+        "operationId": "VolatilityController_getRangeSuggestion",
+        "parameters": [
+          {
+            "name": "poolId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "example": "61R1ndXxvsWXXoF1qNXXYs...",
+              "type": "string"
+            }
+          },
+          {
+            "name": "days",
+            "required": false,
+            "in": "query",
+            "description": "Number of days for history",
+            "schema": {
+              "example": 30,
+              "type": "number"
+            }
+          },
+          {
+            "name": "sigmas",
+            "required": false,
+            "in": "query",
+            "description": "Number of standard deviations (2 = 95%, 3 = 99.7%)",
+            "schema": {
+              "example": 2,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Get range suggestion based on volatility",
+        "tags": [
+          "Volatility & Range Suggestions"
+        ]
+      }
+    },
+    "/volatility/history/{tokenSymbol}": {
+      "get": {
+        "operationId": "VolatilityController_getVolatilityHistory",
+        "parameters": [
+          {
+            "name": "tokenSymbol",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "example": "SOL",
+              "type": "string"
+            }
+          },
+          {
+            "name": "days",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 30,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Get volatility history for token",
+        "tags": [
+          "Volatility & Range Suggestions"
+        ]
+      }
+    },
+    "/volatility/suggestions": {
+      "get": {
+        "operationId": "VolatilityController_getAllSuggestions",
+        "parameters": [
+          {
+            "name": "days",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 30,
+              "type": "number"
+            }
+          },
+          {
+            "name": "sigmas",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 2,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Get all range suggestions for active pools",
+        "tags": [
+          "Volatility & Range Suggestions"
+        ]
+      }
+    },
+    "/volatility/collect": {
+      "post": {
+        "operationId": "VolatilityController_collectPrices",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Manually trigger price collection",
+        "tags": [
+          "Volatility & Range Suggestions"
+        ]
+      }
+    },
+    "/volatility/backfill/{poolId}": {
+      "post": {
+        "operationId": "VolatilityController_backfillPool",
+        "parameters": [
+          {
+            "name": "poolId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "example": "61R1ndXxvsWXXoF1qNXXYs...",
+              "type": "string"
+            }
+          },
+          {
+            "name": "days",
+            "required": false,
+            "in": "query",
+            "description": "Number of days to backfill",
+            "schema": {
+              "example": 30,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Backfill historical data for a specific pool",
+        "tags": [
+          "Volatility & Range Suggestions"
+        ]
+      }
+    },
+    "/volatility/backfill-all": {
+      "post": {
+        "operationId": "VolatilityController_backfillAllPools",
+        "parameters": [
+          {
+            "name": "days",
+            "required": false,
+            "in": "query",
+            "description": "Number of days to backfill",
+            "schema": {
+              "example": 30,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ],
+        "summary": "Backfill historical data for all active pools",
+        "tags": [
+          "Volatility & Range Suggestions"
+        ]
+      }
+    },
+    "/liquidity/optimal-range-volume/position/{positionId}": {
+      "get": {
+        "operationId": "OptimalRangeVolumeController_getForPosition",
+        "parameters": [
+          {
+            "name": "positionId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "period",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "OptimalRangeVolume"
+        ]
+      }
+    },
+    "/liquidity/optimal-range-volume/all": {
+      "get": {
+        "operationId": "OptimalRangeVolumeController_getForAllPositions",
+        "parameters": [
+          {
+            "name": "period",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "OptimalRangeVolume"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "Liquidity Bot API",
+    "description": "API для управления ликвидностью на Raydium CLMM",
+    "version": "1.0",
+    "contact": {}
+  },
+  "tags": [
+    {
+      "name": "swap",
+      "description": "Операции обмена токенов"
+    },
+    {
+      "name": "liquidity",
+      "description": "Управление ликвидностью"
+    },
+    {
+      "name": "monitoring",
+      "description": "Мониторинг позиций"
+    },
+    {
+      "name": "transaction",
+      "description": "История транзакций"
+    },
+    {
+      "name": "auth",
+      "description": "Аутентификация"
+    }
+  ],
+  "servers": [],
+  "components": {
+    "securitySchemes": {
+      "JWT-auth": {
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "type": "http",
+        "name": "JWT",
+        "description": "Enter JWT token",
+        "in": "header"
+      }
+    },
+    "schemas": {
+      "LoginDto": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string",
+            "description": "Имя пользователя",
+            "example": "admin",
+            "minLength": 3
+          },
+          "password": {
+            "type": "string",
+            "description": "Пароль",
+            "example": "password123",
+            "minLength": 6
+          }
+        },
+        "required": [
+          "username",
+          "password"
+        ]
+      },
+      "TokenResponseDto": {
+        "type": "object",
+        "properties": {
+          "accessToken": {
+            "type": "string",
+            "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+          },
+          "refreshToken": {
+            "type": "string",
+            "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+          }
+        },
+        "required": [
+          "accessToken",
+          "refreshToken"
+        ]
+      },
+      "RegisterDto": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string",
+            "example": "john_doe",
+            "minLength": 3
+          },
+          "password": {
+            "type": "string",
+            "example": "SecurePass123",
+            "minLength": 6
+          },
+          "role": {
+            "type": "string",
+            "example": "vault",
+            "enum": [
+              "vault",
+              "pro"
+            ]
+          }
+        },
+        "required": [
+          "username",
+          "password",
+          "role"
+        ]
+      },
+      "RefreshTokenDto": {
+        "type": "object",
+        "properties": {
+          "refreshToken": {
+            "type": "string",
+            "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+          }
+        },
+        "required": [
+          "refreshToken"
+        ]
+      },
+      "SetupPositionDto": {
+        "type": "object",
+        "properties": {
+          "poolId": {
+            "type": "string",
+            "description": "ID пула",
+            "example": "3ucNos4NbumPLZNWztqGHNFFgkHeRMBQAVemeeomsUxv"
+          },
+          "baseMint": {
+            "type": "string",
+            "description": "Адрес базового токена (mint)",
+            "example": "So11111111111111111111111111111111111111112"
+          },
+          "quoteMint": {
+            "type": "string",
+            "description": "Адрес котируемого токена (mint)",
+            "example": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
+          },
+          "inputAmount": {
+            "type": "number",
+            "description": "Количество входного токена",
+            "example": 1.5,
+            "minimum": 0
+          },
+          "priceRangePercent": {
+            "type": "number",
+            "description": "Процент ценового диапазона",
+            "example": 2,
+            "minimum": 0.1,
+            "maximum": 100
+          }
+        },
+        "required": [
+          "baseMint",
+          "quoteMint",
+          "inputAmount",
+          "priceRangePercent"
+        ]
+      },
+      "ClosePositionDto": {
+        "type": "object",
+        "properties": {
+          "nftMint": {
+            "type": "string",
+            "description": "NFT Mint адрес позиции",
+            "example": "5HauEoJa6tcKBy1vofNAxnEDiMpC7H6V9L5TgLwFYNfd"
+          }
+        },
+        "required": [
+          "nftMint"
+        ]
+      },
+      "IncreasePositionDto": {
+        "type": "object",
+        "properties": {
+          "nftMint": {
+            "type": "string",
+            "description": "NFT Mint адрес позиции",
+            "example": "5HauEoJa6tcKBy1vofNAxnEDiMpC7H6V9L5TgLwFYNfd"
+          },
+          "inputAmount": {
+            "type": "number",
+            "description": "Input Amount",
+            "example": "1"
+          }
+        },
+        "required": [
+          "nftMint",
+          "inputAmount"
+        ]
+      },
+      "CreateConfigDto": {
+        "type": "object",
+        "properties": {}
+      }
+    }
+  }
+}

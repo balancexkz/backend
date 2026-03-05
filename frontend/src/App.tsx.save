@@ -1,0 +1,700 @@
+// ═══════════════════════════════════════════════════════════════
+// UPDATED App.tsx with Profit Analytics - PART 1/2
+// From imports to before return statement
+// ═══════════════════════════════════════════════════════════════
+
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+
+interface Pool {
+  poolId: string;
+  baseMint: string;
+  quoteMint: string;
+  currentPrice: number;
+}
+
+interface Position {
+  positionId: string;
+  baseAmount: string;
+  quoteAmount: string;
+  priceRange: { lower: number; upper: number };
+  currentPrice: number;
+  profitability: number;
+  actionHistory: string[];
+  poolKeys: { id: string };
+}
+
+interface PositionWithPool {
+  position: Position;
+  pool: Pool;
+  hasInitialValue: boolean;
+}
+
+interface Balance {
+  amount: number;
+  valueInUSD: number;
+}
+
+interface BalanceResponse {
+  [token: string]: Balance;
+}
+
+interface Swap {
+  id: string;
+  index: number;
+  txHash: string;
+  date: string;
+  inputToken: string;
+  inputAmount: number;
+  inputValueUSD: number;
+  outputToken: string;
+  outputAmount: number;
+  outputValueUSD: number;
+  profitUSD: number;
+}
+
+interface SwapGroup {
+  id: string;
+  type: 'SWAP_GROUP';
+  positionId: string;
+  swapCount: number;
+  date: string;
+  swaps: Swap[];
+  totalProfitUSD: number;
+  solPrice: number | string;
+  walletBalanceUSD: number | string;
+}
+
+interface Transaction {
+  id: string;
+  positionId: string;
+  type: 'Add Liquidity' | 'Remove Liquidity' | 'SWAP_GROUP';
+  date: string;
+  txHash?: string;
+  baseToken?: {
+    symbol: string;
+    amount: number | string;
+    valueUSD: number | string;
+  };
+  quoteToken?: {
+    symbol: string;
+    amount: number | string;
+    valueUSD: number | string;
+  };
+  solPrice?: number | string;
+  positionBalanceUSD?: number | string;
+  walletBalanceUSD?: number | string;
+  profit?: {
+    usd: number;
+    percent?: number;
+  } | null;
+  swapCount?: number;
+  swaps?: Swap[];
+  totalProfitUSD?: number;
+}
+
+interface MonitoringStats {
+  isActive: boolean;
+  activePositions: number;
+  lastCheck: string | null;
+  positionsChecked: number;
+  positionsClosed: number;
+  swapsExecuted: number;
+  positionsReopened: number;
+  liquidityAdded: number;
+  liquidityRetries: number;
+  errors: number;
+  uptime: number;
+}
+
+interface TransactionHistoryStats {
+  totalTransactions: number;
+  openPositions: number;
+  closePositions: number;
+  totalProfit: string;
+  totalVolume: string;
+}
+
+interface ILPosition {
+  id: string;
+  status: 'CLOSED';
+  poolId: string;
+  createdAt: string;
+  closedAt: string;
+  duration: string;
+  feesEarned: number;
+  apr: string | number;
+  impermanentLoss: number;
+  totalSwaps: number;
+}
+
+interface ILStats {
+  totalClosed: number;
+  avgAPR: number;
+  totalFees: number;
+  avgIL: number;
+  totalIL: number;
+  positiveILCount: number;
+  negativeILCount: number;
+  bestPosition: {
+    id: string;
+    apr: number;
+    fees: number;
+  } | null;
+  worstPosition: {
+    id: string;
+    apr: number;
+    il: number;
+  } | null;
+}
+
+interface PositionConfigData {
+  id: string;
+  poolId: string;
+  lowerRangePercent: number;
+  upperRangePercent: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
+const App: React.FC = () => {
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [username, setUsername] = useState<string>('');
+  const [password, setPassword] = useState<string>('');
+  const [positionsData, setPositionsData] = useState<PositionWithPool[]>([]);
+  const [pools, setPools] = useState<Pool[]>([]);
+  const [selectedPool, setSelectedPool] = useState('');
+  const [baseMint, setBaseMint] = useState('');
+  const [quoteMint, setQuoteMint] = useState('');
+  const [priceRangePercent, setPriceRangePercent] = useState<number>(10);
+  const [inputAmount, setInputAmount] = useState<number>(0);
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState('');
+  const [balances, setBalances] = useState<BalanceResponse>({});
+  const [tokenPrices, setTokenPrices] = useState<{ [key: string]: number }>({});
+  const [usdValue, setUsdValue] = useState<number>(0);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [monitoringStats, setMonitoringStats] = useState<MonitoringStats | null>(null);
+  const [historyStats, setHistoryStats] = useState<TransactionHistoryStats | null>(null);
+  const [ilPositions, setILPositions] = useState<ILPosition[]>([]);
+  const [ilStats, setILStats] = useState<ILStats | null>(null);
+  
+  // ✅ UPDATED: Added 'profit' to activeTab
+  const [activeTab, setActiveTab] = useState<'positions' | 'history' | 'monitoring' | 'il-analysis' | 'settings' | 'profit'>('positions');
+  const [expandedSwapGroups, setExpandedSwapGroups] = useState<Set<string>>(new Set());
+
+  // ✅ NEW: Profit Analytics State
+  const [profitStats, setProfitStats] = useState<{
+    totalNetProfit: string;
+    avgProfit: string;
+    operations: number;
+    profitableOps: number;
+    lossOps: number;
+    successRate: string;
+    monthlyBreakdown: Array<{
+      year: number;
+      month: number;
+      monthName: string;
+      profit: string;
+      operations: number;
+      avgProfit: string;
+    }>;
+  } | null>(null);
+
+  const [selectedMonth, setSelectedMonth] = useState<{
+    year: number;
+    month: number;
+  } | null>(null);
+
+  const [monthlyProfit, setMonthlyProfit] = useState<{
+    year: number;
+    month: number;
+    totalNetProfit: string;
+    avgProfit: string;
+    operations: number;
+    profitableOps: number;
+    lossOps: number;
+    successRate: string;
+  } | null>(null);
+
+  const [positionConfigs, setPositionConfigs] = useState<PositionConfigData[]>([]);
+  const [selectedConfigPool, setSelectedConfigPool] = useState('');
+  const [lowerRangePercent, setLowerRangePercent] = useState<number>(10);
+  const [upperRangePercent, setUpperRangePercent] = useState<number>(10);
+
+  // ✅ UPDATED: First useEffect
+  useEffect(() => {
+    const interceptor = axios.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        if (error.response?.status === 401) {
+          localStorage.removeItem('token');
+          delete axios.defaults.headers.common['Authorization'];
+          setIsAuthenticated(false);
+          setMessage('Session expired. Please login again.');
+          setTimeout(() => window.location.reload(), 100);
+        }
+        return Promise.reject(error);
+      }
+    );
+
+    const token = localStorage.getItem('token');
+    if (token) {
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      setIsAuthenticated(true);
+      fetchPositions();
+      fetchMonitoringStats();
+      fetchTransactionHistory();
+      fetchHistoryStats();
+      fetchILAnalysis();
+      fetchPositionConfigs();
+      fetchProfitAnalytics(); // ✅ NEW
+    }
+
+    return () => {
+      axios.interceptors.response.eject(interceptor);
+    };
+  }, []);
+
+  // ✅ UPDATED: Second useEffect
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const interval = setInterval(() => {
+      fetchMonitoringStats();
+      if (activeTab === 'history') {
+        fetchTransactionHistory();
+      } else if (activeTab === 'il-analysis') {
+        fetchILAnalysis();
+      } else if (activeTab === 'profit') { // ✅ NEW
+        fetchProfitAnalytics();
+      }
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, [isAuthenticated, activeTab]);
+
+  const fetchPositionConfigs = async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/position-config`);
+      setPositionConfigs(response.data.configs || []);
+    } catch (error) {
+      console.error('Error fetching configs:', error);
+      setPositionConfigs([]);
+    }
+  };
+
+  // ✅ NEW: Fetch Profit Analytics
+  const fetchProfitAnalytics = async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/transaction/all-time`);
+      if (response.data.success) {
+        setProfitStats(response.data.stats);
+      }
+    } catch (error) {
+      console.error('Error fetching profit analytics:', error);
+      setProfitStats(null);
+    }
+  };
+
+  // ✅ NEW: Fetch Monthly Profit
+  const fetchMonthlyProfit = async (year: number, month: number) => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/transaction/monthly/${year}/${month}`);
+      if (response.data.success) {
+        setMonthlyProfit(response.data.stats);
+      }
+    } catch (error) {
+      console.error('Error fetching monthly profit:', error);
+      setMonthlyProfit(null);
+    }
+  };
+
+  const savePositionConfig = async () => {
+    if (!selectedConfigPool) {
+      setMessage('Please select a pool');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await axios.post(`${API_BASE_URL}/position-config`, {
+        poolId: selectedConfigPool,
+        lowerRangePercent,
+        upperRangePercent,
+      });
+      setMessage(`✅ Config saved: Lower ${lowerRangePercent}%, Upper ${upperRangePercent}%`);
+      await fetchPositionConfigs();
+    } catch (error) {
+      setMessage(`Error: ${axios.isAxiosError(error) ? error.response?.data?.message || error.message : 'Unknown error'}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const deletePositionConfig = async (poolId: string) => {
+    if (!confirm(`Delete config for pool ${poolId}?`)) return;
+
+    setLoading(true);
+    try {
+      await axios.delete(`${API_BASE_URL}/position-config/${poolId}`);
+      setMessage(`✅ Config deleted for pool ${poolId}`);
+      await fetchPositionConfigs();
+    } catch (error) {
+      setMessage(`Error: ${axios.isAxiosError(error) ? error.message : 'Unknown error'}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchMonitoringStats = async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/monitoring/stats`);
+      if (response.data.success) {
+        setMonitoringStats(response.data.stats);
+      }
+    } catch (error) {
+      console.error('Error fetching monitoring stats:', error);
+    }
+  };
+
+  const fetchTransactionHistory = async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/transaction/grouped?limit=50`);
+      setTransactions(response.data.transactions || []);
+    } catch (error) {
+      console.error('Error fetching transaction history:', error);
+      setTransactions([]);
+    }
+  };
+
+  const fetchHistoryStats = async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/transaction/statistics`);
+      setHistoryStats(response.data);
+    } catch (error) {
+      console.error('Error fetching history stats:', error);
+    }
+  };
+
+  const fetchILAnalysis = async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/analytics/positions`, {
+        params: {
+          status: 'CLOSED',
+          limit: 100,
+          sort: 'closedAt'
+        }
+      });
+      
+      const positions = response.data.positions || response.data || [];
+      
+      if (!Array.isArray(positions)) {
+        console.error('Expected array, got:', positions);
+        setILPositions([]);
+        setILStats(null);
+        return;
+      }
+
+      setILPositions(positions);
+      
+      if (positions.length > 0) {
+        const validPositions = positions.filter((p: ILPosition) => 
+          p.apr !== null && p.apr !== undefined && 
+          p.impermanentLoss !== null && p.impermanentLoss !== undefined &&
+          p.feesEarned !== null && p.feesEarned !== undefined
+        );
+
+        if (validPositions.length > 0) {
+          const positionsWithAPR = validPositions.filter((p: ILPosition) => 
+            p.apr && !isNaN(parseFloat(String(p.apr)))
+          );
+          const avgAPR = positionsWithAPR.length > 0
+            ? positionsWithAPR.reduce((sum: number, p: ILPosition) => sum + parseFloat(String(p.apr)), 0) / positionsWithAPR.length
+            : 0;
+          
+          const totalFees = validPositions.reduce((sum: number, p: ILPosition) => sum + p.feesEarned, 0);
+          const avgIL = validPositions.reduce((sum: number, p: ILPosition) => sum + p.impermanentLoss, 0) / validPositions.length;
+          const totalIL = validPositions.reduce((sum: number, p: ILPosition) => sum + p.impermanentLoss, 0);
+          
+          const positiveILCount = validPositions.filter((p: ILPosition) => p.impermanentLoss > 0).length;
+          const negativeILCount = validPositions.filter((p: ILPosition) => p.impermanentLoss <= 0).length;
+          
+          const sortedByAPR = [...validPositions].sort((a, b) => 
+            parseFloat(String(b.apr)) - parseFloat(String(a.apr))
+          );
+          
+          const sortedByIL = [...validPositions].sort((a, b) => b.impermanentLoss - a.impermanentLoss);
+          
+          setILStats({
+            totalClosed: validPositions.length,
+            avgAPR: avgAPR,
+            totalFees: totalFees,
+            avgIL: avgIL,
+            totalIL: totalIL,
+            positiveILCount,
+            negativeILCount,
+            bestPosition: sortedByAPR[0] ? {
+              id: sortedByAPR[0].id,
+              apr: parseFloat(String(sortedByAPR[0].apr)) || 0,
+              fees: sortedByAPR[0].feesEarned,
+            } : null,
+            worstPosition: sortedByIL[0] ? {
+              id: sortedByIL[0].id,
+              apr: parseFloat(String(sortedByIL[0].apr)) || 0,
+              il: sortedByIL[0].impermanentLoss,
+            } : null,
+          });
+        } else {
+          setILStats(null);
+        }
+      } else {
+        setILStats(null);
+      }
+    } catch (error) {
+      console.error('Error fetching IL analysis:', error);
+      if (axios.isAxiosError(error)) {
+        console.error('Response:', error.response?.data);
+      }
+      setILPositions([]);
+      setILStats(null);
+    }
+  };
+
+  const startMonitoring = async () => {
+    setLoading(true);
+    try {
+      const response = await axios.post(`${API_BASE_URL}/monitoring/start`);
+      setMessage(response.data.message);
+      await fetchMonitoringStats();
+    } catch (error) {
+      setMessage(`Error: ${axios.isAxiosError(error) ? error.response?.data?.message || error.message : 'Unknown error'}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const stopMonitoring = async () => {
+    setLoading(true);
+    try {
+      const response = await axios.post(`${API_BASE_URL}/monitoring/stop`);
+      setMessage(response.data.message);
+      await fetchMonitoringStats();
+    } catch (error) {
+      setMessage(`Error: ${axios.isAxiosError(error) ? error.response?.data?.message || error.message : 'Unknown error'}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const checkPositionsNow = async () => {
+    setLoading(true);
+    try {
+      const response = await axios.post(`${API_BASE_URL}/monitoring/check-now`);
+      setMessage(response.data.message);
+      await fetchMonitoringStats();
+      await fetchPositions();
+    } catch (error) {
+      setMessage(`Error: ${axios.isAxiosError(error) ? error.response?.data?.message || error.message : 'Unknown error'}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchPositions = async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/liquidity/positions`);
+      const data = response.data;
+      
+      if (Array.isArray(data)) {
+        setPositionsData(data);
+        const uniquePools = new Map<string, Pool>();
+        data.forEach((item: PositionWithPool) => {
+          if (!uniquePools.has(item.pool.poolId)) {
+            uniquePools.set(item.pool.poolId, item.pool);
+          }
+        });
+        setPools(Array.from(uniquePools.values()));
+      } else {
+        setPositionsData([]);
+        setPools([]);
+      }
+    } catch (error) {
+      setMessage(`Error fetching positions: ${axios.isAxiosError(error) ? error.message : 'Unknown error'}`);
+    }
+  };
+
+  // ✅ UPDATED: handleLogin
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const response = await axios.post(`${API_BASE_URL}/auth/login`, {
+        username,
+        password,
+      });
+      const { token } = response.data;
+      localStorage.setItem('token', token);
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      setIsAuthenticated(true);
+      setMessage('Login successful!');
+      await Promise.all([
+        fetchPositions(),
+        fetchMonitoringStats(),
+        fetchTransactionHistory(),
+        fetchHistoryStats(),
+        fetchILAnalysis(),
+        fetchPositionConfigs(),
+        fetchProfitAnalytics(), // ✅ NEW
+      ]);
+    } catch (error) {
+      setMessage(`Login failed: ${axios.isAxiosError(error) ? error.message : 'Unknown error'}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getTokenAddress = (symbol: string): string => {
+    const tokenAddresses: { [key: string]: string } = {
+      SOL: 'So11111111111111111111111111111111111111112',
+      USDC: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
+      ETH: '7vfCXTUXx5WJV5JADk17DUJ4ksgau7utNKj4b963voxs',
+      USDT: 'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB',
+      RAY: '4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R',
+    };
+    return tokenAddresses[symbol] || symbol;
+  };
+
+  const fetchBalances = async (poolId: string) => {
+    if (!poolId) return;
+    try {
+      const response = await axios.get(`${API_BASE_URL}/liquidity/pool/balance/${poolId}`);
+      setBalances(response.data);
+    } catch (error) {
+      setMessage(`Error fetching balances: ${axios.isAxiosError(error) ? error.message : 'Unknown error'}`);
+      setBalances({});
+    }
+  };
+
+  const fetchTokenPrices = async (symbols: string[]) => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/liquidity/token/price`, {
+        params: { symbols: symbols.join(',') },
+      });
+      setTokenPrices((prev) => ({ ...prev, ...response.data }));
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching prices:', error);
+      const errorPrices = symbols.reduce((acc, symbol) => {
+        acc[symbol] = 0;
+        return acc;
+      }, {} as { [key: string]: number });
+      setTokenPrices((prev) => ({ ...prev, ...errorPrices }));
+      return errorPrices;
+    }
+  };
+
+  const handlePoolChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const poolId = e.target.value;
+    setSelectedPool(poolId);
+    const pool = pools.find((p) => p.poolId === poolId);
+    if (pool) {
+      setBaseMint(pool.baseMint);
+      setQuoteMint(pool.quoteMint);
+      await fetchTokenPrices([pool.baseMint, pool.quoteMint]);
+      fetchBalances(poolId);
+    } else {
+      setBaseMint('');
+      setQuoteMint('');
+      setBalances({});
+      setTokenPrices({});
+    }
+  };
+
+  useEffect(() => {
+    if (inputAmount && baseMint && tokenPrices[baseMint]) {
+      setUsdValue(inputAmount * tokenPrices[baseMint]);
+    } else {
+      setUsdValue(0);
+    }
+  }, [inputAmount, baseMint, tokenPrices]);
+
+  const handleSetupLiquidity = async () => {
+    if (!selectedPool || !inputAmount) {
+      setMessage('Please select a trading pair and enter an amount');
+      return;
+    }
+    setLoading(true);
+    setMessage('');
+    try {
+      await axios.post(`${API_BASE_URL}/liquidity/setup-position`, {
+        poolId: selectedPool,
+        baseMint: getTokenAddress(baseMint),
+        quoteMint: getTokenAddress(quoteMint),
+        priceRangePercent,
+        inputAmount: Number(inputAmount),
+      });
+      setMessage(`Position created successfully!`);
+      await Promise.all([
+        fetchPositions(),
+        fetchTransactionHistory(),
+        fetchHistoryStats(),
+      ]);
+      fetchBalances(selectedPool);
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        setMessage(error.response?.data?.message || error.message);
+      } else {
+        setMessage('An unknown error occurred');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRemoveLiquidity = async (positionId: string) => {
+    setLoading(true);
+    setMessage('');
+    try {
+      await axios.post(`${API_BASE_URL}/liquidity/close-position`, { nftMint: positionId });
+      await Promise.all([
+        fetchPositions(),
+        fetchTransactionHistory(),
+        fetchHistoryStats(),
+      ]);
+      setMessage(`Liquidity removed for position ${positionId.slice(0, 8)}...`);
+      fetchBalances(selectedPool);
+    } catch (error) {
+      setMessage(`Error: ${axios.isAxiosError(error) ? error.message : 'Unknown error'}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatUptime = (ms: number): string => {
+    const seconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+    
+    if (days > 0) return `${days}d ${hours % 24}h`;
+    if (hours > 0) return `${hours}h ${minutes % 60}m`;
+    if (minutes > 0) return `${minutes}m ${seconds % 60}s`;
+    return `${seconds}s`;
+  };
+
+  const toggleSwapGroup = (groupId: string) => {
+    setExpandedSwapGroups(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(groupId)) {
+        newSet.delete(groupId);
+      } else {
+        newSet.add(groupId);
+      }
+      return newSet;
+    });
+  };
+

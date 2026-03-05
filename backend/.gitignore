@@ -1,0 +1,28 @@
+# compiled output
+/dist
+/node_modules
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+
+# Tests
+/coverage
+
+# IDEs
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.idea
+
+# dotenv
+.env
+.env.local
+.env.*.local
+
+# Claude worktrees (local only)
+.claude/worktrees/

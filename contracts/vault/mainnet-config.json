@@ -1,0 +1,19 @@
+{
+  "network": "mainnet-beta",
+  "programId": "BHdQMss1NL2AQGVmsrpyUfmp4o7XC5X9E5ZiXitsdGNx",
+  "vaultPda": "2MHdJWtmhpPzuy3i2GTtv6hJFkM46M4nZdX59GU9KDCp",
+  "shareMint": "HiXveGj8YsvzqGUPjFpt4TDjcaEDh4ZAgUVodXcLWCBj",
+  "solTreasury": "9FRoiJHYe3mjLAfT7XJyLdJ8BPhvYp31ac8VTpQnPMUe",
+  "usdcTreasury": "5CgqRTfJi55FFXwANKrvq6oNB3sjCTi9rAFeBFQpYi3b",
+  "admin": "38afxYQhjGKgyoWEsKhAZ85xkdCj3z6bj3YU5RY74mR1",
+  "protocolWallet": "GeBqZr4vvvJume463qHbCWAPKnUY51tjLbd9HWH8uhRQ",
+  "wsolMint": "So11111111111111111111111111111111111111112",
+  "usdcMint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+  "raydiumSolUsdcPool": "3ucNos4NbumPLZNWztqGHNFFgkHeRMBQAVemeeomsUxv",
+  "position": {
+    "nftMint": "As1P7HiXY4Uve8hoc2v2MfUoEjWKG48WKfBMYvy1NKit",
+    "tickLower": -23966,
+    "tickUpper": -23954,
+    "poolId": "3ucNos4NbumPLZNWztqGHNFFgkHeRMBQAVemeeomsUxv"
+  }
+}

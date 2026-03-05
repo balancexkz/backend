@@ -1,0 +1,46 @@
+# ./back/Dockerfile.prod
+
+# === BUILD ===
+FROM node:20-alpine AS builder
+WORKDIR /app
+
+# Уменьшение слоев
+COPY package*.json ./
+RUN npm ci
+
+COPY . .
+RUN npm run build
+
+# Только прод зависимости
+RUN npm prune --production
+
+
+# === RUNTIME ===
+FROM node:20-alpine AS runner
+WORKDIR /app
+
+ENV NODE_ENV=production
+# утилита для healthcheck
+RUN apk add --no-cache curl
+
+# COPY runtime
+COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/dist ./dist
+# Ensure IDL files are present (nest-cli.json copies them, but explicit is safer)
+COPY --from=builder /app/src/solana/idl ./dist/src/solana/idl
+
+# non-root user
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+
+# Create directory for swagger.json with proper permissions
+RUN mkdir -p /app/docs && chown -R appuser:appgroup /app/docs
+
+USER appuser
+
+EXPOSE 3000
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD curl -f http://127.0.0.1:3000/health || exit 1
+
+CMD ["node", "dist/src/main.js"]

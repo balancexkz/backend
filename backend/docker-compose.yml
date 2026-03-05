@@ -1,0 +1,65 @@
+version: '3.8'
+services:
+  backend:
+#   image: registry.gitlab.com/quybit/gexabyte-2025/balancex/back:${IMAGE_TAG}
+    container_name: balancex-backend
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      - db
+      - redis
+    networks:
+      - balancex_net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:3000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  db:
+    image: postgres:15
+    container_name: balancex-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: ${DB_DATABASE}
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - balancex_net
+  
+  redis:
+    image: redis:7-alpine
+    container_name: balancex-redis
+    restart: unless-stopped
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+    networks:
+      - balancex_net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+
+networks:
+  balancex_net:
+    driver: bridge
+
+volumes:
+  postgres-data:
+    name: balancex_postgres_data
+
+  redis-data:  # ✅ ДОБАВЛЕНО!
+    name: balancex_redis_data

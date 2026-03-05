@@ -1,0 +1,63 @@
+@import "tailwindcss";
+
+@theme {
+  --color-accent-50: #f0eeff;
+  --color-accent-100: #e0ddff;
+  --color-accent-200: #c2bbff;
+  --color-accent-300: #a399ff;
+  --color-accent-400: #8577ff;
+  --color-accent-500: #665eff;
+  --color-accent-600: #524bcc;
+  --color-accent-700: #3d3899;
+  --color-accent-800: #292666;
+  --color-accent-900: #141333;
+
+  --color-dark-bg: #0a0a12;
+  --color-dark-card: #1a1a2e;
+  --color-dark-card-hover: #252540;
+  --color-dark-border: #2a2a3e;
+  --color-dark-input: #12121e;
+  --color-dark-table-header: #1e1e35;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background-color: var(--color-dark-bg);
+  color: #e2e8f0;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-dark-bg);
+}
+::-webkit-scrollbar-thumb {
+  background: #2a2a3e;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #665eff;
+}
+
+/* Custom animations */
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@utility animate-fade-in {
+  animation: fade-in 0.3s ease-out;
+}
+
+/* Selection */
+::selection {
+  background-color: rgba(102, 94, 255, 0.3);
+}
